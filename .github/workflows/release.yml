@@ -1,0 +1,69 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: macos-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Calculate version
+        id: version
+        run: |
+          CALVER=$(date -u +"%Y-%m-%d")
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "version=${CALVER}+${SHORT_SHA}" >> $GITHUB_OUTPUT
+
+      - name: Build
+        run: |
+          for cmd in zoekt zoekt-index zoekt-git-index; do
+            GOARCH=arm64 GOOS=darwin go build -o "$cmd" "./cmd/$cmd"
+            tar -czf "${cmd}-aarch64-apple-darwin.tar.gz" "$cmd"
+          done
+
+      - name: Publish
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          git tag "v${VERSION}"
+          git push origin "v${VERSION}"
+
+          gh release create "v${VERSION}" \
+            --title "v${VERSION}" \
+            --generate-notes \
+            zoekt-aarch64-apple-darwin.tar.gz \
+            zoekt-index-aarch64-apple-darwin.tar.gz \
+            zoekt-git-index-aarch64-apple-darwin.tar.gz
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  dotslash:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate DotSlash file
+        uses: facebook/dotslash-publish-release@v1
+        with:
+          config: .github/dotslash-config.json
+          tag: v${{ needs.build.outputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

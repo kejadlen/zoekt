@@ -1,0 +1,28 @@
+{
+  "outputs": {
+    "zoekt": {
+      "platforms": {
+        "macos-aarch64": {
+          "regex": "^zoekt-aarch64-apple-darwin\\.tar\\.gz$",
+          "path": "zoekt"
+        }
+      }
+    },
+    "zoekt-index": {
+      "platforms": {
+        "macos-aarch64": {
+          "regex": "^zoekt-index-aarch64-apple-darwin\\.tar\\.gz$",
+          "path": "zoekt-index"
+        }
+      }
+    },
+    "zoekt-git-index": {
+      "platforms": {
+        "macos-aarch64": {
+          "regex": "^zoekt-git-index-aarch64-apple-darwin\\.tar\\.gz$",
+          "path": "zoekt-git-index"
+        }
+      }
+    }
+  }
+}
